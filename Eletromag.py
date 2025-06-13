@@ -21,7 +21,7 @@ def circleArea(radius):
         :returns: float: The area of the circle squared meters.
 
      '''
-    circleArea = 2 * np.pi * radius
+    circleArea = np.pi * radius **2
     return circleArea
 
 
