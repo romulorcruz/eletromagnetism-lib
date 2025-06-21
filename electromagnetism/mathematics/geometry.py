@@ -7,8 +7,7 @@ Contains:
 Area calculations: circle, rectangle, square.
 Geometrics figure coordinates generators: arch, line, racetrack.
 """
-from numpy import sin, cos
-from constants import pi
+from numpy import sin, cos, pi
 
 def circleArea(radius: float):
     '''
