@@ -1,4 +1,11 @@
-from numpy import sqrt, vstack, array, ndarray
+"""System Calculations Module.
+
+This module contains functions for calculations on multi-coil systems, like length
+and resistance of serie associated coils and magnetic field for only multiple coils 
+systems with same current using numerical methods (e.g., Biot-Savart Law).
+"""
+from numpy import sqrt, vstack, ndarray
+from .mathematics.constants import BX,BY,BZ
 def calculateMultipleCoilsLength(coilList):
     '''
         Calculates the sum of lengths from multiple coils.
