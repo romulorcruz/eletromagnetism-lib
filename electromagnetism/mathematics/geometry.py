@@ -1,3 +1,15 @@
+"""Geometry Module.
+
+This module contains all geometric tools that can be useful for
+resistance calculation and coil path generations.
+
+Contains:
+Area calculations: circle, rectangle, square.
+Geometrics figure coordinates generators: arch, line, racetrack.
+"""
+from numpy import sin, cos
+from constants import pi
+
 def circleArea(radius: float):
     '''
         Calculates the area of a circle based on its radius.
@@ -7,7 +19,7 @@ def circleArea(radius: float):
         :returns: float: The area of the circle squared meters.
 
      '''
-    circleArea = np.pi * radius **2
+    circleArea = pi * radius **2
     return circleArea
 
 
@@ -60,11 +72,11 @@ def crossSectionalArea(fill_ratio:float=1,*,radius:float=None,width:float=None,l
 
         :raises TypeError: if the parameters do not define a valid shape.
     '''
-    if side != None:
+    if side is not None:
         return squareArea(side) * fill_ratio
-    elif width and length != None:
+    elif width and length is not None:
         return rectangleArea(width,length) * fill_ratio
-    elif radius != None:
+    elif radius is not None:
         return circleArea(radius) * fill_ratio
     else: 
         raise TypeError('Invalid paramers')
@@ -74,8 +86,8 @@ def createLine(Pa: float, Pb: float,*, max_seg_len:float = 1,n_points:int = None
     """
         Calculates the list of coordinates (coil path) between two different points in 3D space.
 
-        :Pa| list or np.array: Coordinates of the initial point.
-        :Pb| list or np.array: Coordinates of the final point.
+        :Pa| list or numpy.array: Coordinates of the initial point.
+        :Pb| list or numpy.array: Coordinates of the final point.
         :max_seg_len| float: (optional) Maximum length of each segment. Default is 1.
         :n_points| int: (optional) The number of points in the coil path. Default is None.
 
@@ -94,13 +106,14 @@ def createLine(Pa: float, Pb: float,*, max_seg_len:float = 1,n_points:int = None
     
     assert Pa != Pb, "The initial and final points must be different."
     assert max_seg_len > 0,'The maximun segment legth must be an positive number'
-    assert type(n_points) == 'NoneType' or int
-        
+    assert isinstance(n_points) == 'NoneType' or int
+
     projection = [b - a for a, b in zip(Pa, Pb)]
     length = sum(p**2 for p in projection) ** 0.5
-    
-    assert length >= max_seg_len,'The distance between the points must be equal or higher than the maximum segment length'
-    
+
+    assert length >= max_seg_len,'The distance between the points must be equal'
+    'or higher than the maximum segment length'
+
     max_seg_len = length/n_points if n_points != None else max_seg_len
 
     ratio = length / max_seg_len
@@ -117,11 +130,12 @@ def createLine(Pa: float, Pb: float,*, max_seg_len:float = 1,n_points:int = None
     return coilPath
 
 
-def createArch(center: list, radius: float, start_angle: float, angle: float, max_seg_len: float, n_points=None, anticlockwise: bool = False):
+def createArch(center: list, radius: float, start_angle: float, angle: float,
+                max_seg_len: float, n_points=None, anticlockwise: bool = False):
     """
     Calculates the list of coordinates (coil path) in a specific arch in 3D space.
 
-    :center| list or np.array: Coordinates of the initial point.
+    :center| list or numpy.array: Coordinates of the initial point.
     :radius| float: Radius of the arch.
     :start_angle| float: Starting angle (radians).
     :angle| float: Total angle (radians) to sweep.
@@ -151,8 +165,8 @@ def createArch(center: list, radius: float, start_angle: float, angle: float, ma
     if not anticlockwise:
         coilPath = [
             [
-                center[0] + radius * np.cos(start_angle + i * theta),
-                center[1] + radius * np.sin(start_angle + i * theta),
+                center[0] + radius * cos(start_angle + i * theta),
+                center[1] + radius * sin(start_angle + i * theta),
                 center[2]
             ]
             for i in range(n_points + 1)
@@ -160,8 +174,8 @@ def createArch(center: list, radius: float, start_angle: float, angle: float, ma
     else:
         coilPath = [
             [
-                center[0] + radius * np.cos(start_angle - i * theta),
-                center[1] + radius * np.sin(start_angle - i * theta),
+                center[0] + radius * cos(start_angle - i * theta),
+                center[1] + radius * sin(start_angle - i * theta),
                 center[2]
             ]
             for i in range(n_points + 1)
