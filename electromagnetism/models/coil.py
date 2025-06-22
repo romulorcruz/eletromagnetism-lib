@@ -202,3 +202,34 @@ class Coil:
         '''
         dissipationPotency = self._resistance * I**2
         return dissipationPotency
+    
+def crossSectionalArea(fill_ratio:float=1,*,radius:float=None,width:float=None,length:float=None,side:float=None):
+    '''
+        Calculates the cross-sectional area of a conductor based on its shape and a fill ratio.
+
+        Only one shape parameters (radius, width+length or side) must be provided. 
+        The function multiplies the area obtained by the fill_ratio.
+
+        :param fill_ratio float: (optional) Ratio representing the fraction of the shape area occupied by conductor (default is 1).
+        :param radius: float, optional
+            The radius of a circular cross-section.
+        :param width: float, optional
+            The width of a rectangular cross-section.
+        :param length: float, optional
+            The length of a rectangular cross-section.
+        :param side: float, optional
+            The side length of a square cross-section.
+
+        :returns: float
+            The calculated cross-sectional area adjusted by the fill_ratio.
+
+        :raises TypeError: if the parameters do not define a valid shape.
+    '''
+    if side is not None:
+        return squareArea(side) * fill_ratio
+    elif width and length is not None:
+        return rectangleArea(width,length) * fill_ratio
+    elif radius is not None:
+        return circleArea(radius) * fill_ratio
+    else: 
+        raise TypeError('Invalid paramers')

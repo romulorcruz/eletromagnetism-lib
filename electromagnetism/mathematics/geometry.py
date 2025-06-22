@@ -7,92 +7,65 @@ Contains:
 Area calculations: circle, rectangle, square.
 Geometrics figure coordinates generators: arch, line, racetrack.
 """
-from numpy import sin, cos, pi
+from numpy import sin, cos, pi, array, linspace
 
-def circleArea(radius: float):
-    '''
-        Calculates the area of a circle based on its radius.
+def circle_area(radius: float) -> float:
+    """Calculates the area of a circle based on its radius.
+    
+    Args:
+        radius (float): The radius of the circle in meters.
         
-        :param radius float: the radius of the circle in meters.
-        
-        :returns: float: The area of the circle squared meters.
-
-     '''
-    circleArea = pi * radius **2
-    return circleArea
-
-
-def rectangleArea(width: float,length: float):
-    '''
-        Calculates the area of a rectangle based on its width and legnth.
-        
-        :param width float: the width of the rectangle in meters.
-        :param length float: the length of the rectangle in meters.
-
-        :returns: float: The area of the rectangle in squared meters.
-
-     '''
-    rectangleArea = width * length
-    return rectangleArea
-
-
-def squareArea(side: float):
-    '''
-        Calculates the area of a square using teh length of its side.
-        
-        :param side float: the length of the square's side in meters.
-        
-        :returns: float: The area of the square in squared meters.
-
-     '''    
-    squareArea = side**2
-    return squareArea
-
-
-def crossSectionalArea(fill_ratio:float=1,*,radius:float=None,width:float=None,length:float=None,side:float=None):
-    '''
-        Calculates the cross-sectional area of a conductor based on its shape and a fill ratio.
-
-        Only one shape parameters (radius, width+length or side) must be provided. 
-        The function multiplies the area obtained by the fill_ratio.
-
-        :param fill_ratio float: (optional) Ratio representing the fraction of the shape area occupied by conductor (default is 1).
-        :param radius: float, optional
-            The radius of a circular cross-section.
-        :param width: float, optional
-            The width of a rectangular cross-section.
-        :param length: float, optional
-            The length of a rectangular cross-section.
-        :param side: float, optional
-            The side length of a square cross-section.
-
-        :returns: float
-            The calculated cross-sectional area adjusted by the fill_ratio.
-
-        :raises TypeError: if the parameters do not define a valid shape.
-    '''
-    if side is not None:
-        return squareArea(side) * fill_ratio
-    elif width and length is not None:
-        return rectangleArea(width,length) * fill_ratio
-    elif radius is not None:
-        return circleArea(radius) * fill_ratio
-    else: 
-        raise TypeError('Invalid paramers')
-      
-
-def createLine(Pa: float, Pb: float,*, max_seg_len:float = 1,n_points:int = None):
+    Returns:
+        float: The area of the circle in squared meters.
     """
-        Calculates the list of coordinates (coil path) between two different points in 3D space.
+    if radius <= 0:
+        raise ValueError("The radius must be a positive number.")
+    return pi * radius ** 2
 
-        :Pa| list or numpy.array: Coordinates of the initial point.
-        :Pb| list or numpy.array: Coordinates of the final point.
-        :max_seg_len| float: (optional) Maximum length of each segment. Default is 1.
-        :n_points| int: (optional) The number of points in the coil path. Default is None.
+
+def rectangle_area(width: float,length: float) -> float:
+    """Calculates the area of a rectangle based on its width and length.
+    
+    Args:
+        width (float): The width of the rectangle in meters.
+        length (float): The length of the rectangle in meters.
+        
+    Returns:
+        float: The area of the rectangle in squared meters.
+    """
+    if width <= 0:
+        raise ValueError("The width must be a positive number.") 
+    
+    if length <= 0:
+        raise ValueError("The length must be a positive number.") 
+    
+    return width * length
+
+def square_area(side: float) -> float:
+    """Calculates the area of a square based on its side.
+    
+    Args:
+        side (float): The side of the square in meters.
+        
+    Returns:
+        float: The area of the square in squared meters.
+    """
+    if side <= 0:
+        raise ValueError("The side must be a positive number") 
+    return side**2
+
+def create_line(Pa: float, Pb: float,*, max_seg_len:float = 1,n_points:int = None) -> array:
+    """Calculates the list of coordinates (coil path) between two different points in 3D space.
+
+        Args:
+            Pa (list or numpy.array): Coordinates of the initial point.
+            Pb (list or numpy.array): Coordinates of the final point.
+            max_seg_len (float): (optional) Maximum length of each segment. Default is 1.
+            n_points (int): (optional) The number of points in the coil path. Default is None.
 
 
         Returns:
-            list: A list of coordinates representing the segmented line (coil path).
+            path: A numpy.array of coordinates representing the segmented line.
     """
     # Transform all the objects in float if they are compactible, otherwise it will raise a value error
     try:
@@ -102,45 +75,48 @@ def createLine(Pa: float, Pb: float,*, max_seg_len:float = 1,n_points:int = None
 
     except:
         raise ValueError("All elements in the input must be numbers, lists or arrays.")
-    
-    assert Pa != Pb, "The initial and final points must be different."
-    assert max_seg_len > 0,'The maximun segment legth must be an positive number'
-    assert isinstance(n_points) == 'NoneType' or int
+    if Pa == Pb:
+        raise ValueError("The initial and final points must be different.")
+    if max_seg_len <= 0:
+        raise ValueError("The maximun segment legth must be an positive number")
+    if n_points is not None and isinstance(n_points, int):
+        raise TypeError("The number of points must be a positive integer.")
+    if n_points is not None and n_points <= 0:
+        raise ValueError("The number of points must be a positive integer.")
 
     projection = [b - a for a, b in zip(Pa, Pb)]
     length = sum(p**2 for p in projection) ** 0.5
 
-    assert length >= max_seg_len,'The distance between the points must be equal'
-    'or higher than the maximum segment length'
+    if max_seg_len >= length:
+        raise ValueError("The distance between the points must be equal or higher than the maximum segment length")
 
     max_seg_len = length/n_points if n_points != None else max_seg_len
 
     ratio = length / max_seg_len
-    coilPath = [
+    path = [
         [projection[0] / ratio * i + Pa[0],
          projection[1] / ratio * i + Pa[1],
          projection[2] / ratio * i + Pa[2]]
         for i in range(int(ratio) + 1)
     ]
 
-    if Pb not in coilPath:
-        coilPath.append(Pb)
+    if Pb not in path:
+        path.append(Pb)
 
-    return coilPath
+    return array(path)
 
 
-def createArch(center: list, radius: float, start_angle: float, angle: float,
+def create_arch(center: list, radius: float, start_angle: float, angle: float,
                 max_seg_len: float, n_points=None, anticlockwise: bool = False):
-    """
-    Calculates the list of coordinates (coil path) in a specific arch in 3D space.
+    """Calculates the list of coordinates (coil path) in a specific arch in 3D space.
 
-    :center| list or numpy.array: Coordinates of the initial point.
-    :radius| float: Radius of the arch.
-    :start_angle| float: Starting angle (radians).
-    :angle| float: Total angle (radians) to sweep.
-    :max_seg_len| float: (optional) Maximum length of each segment. Default is 1.
-    :n_points| int: (optional) Number of points. If None, computed from max_seg_len.
-    :anticlockwise| bool: If True, the arc is swept in the negative angular direction.
+    center (list or numpy.array): Coordinates of the initial point.
+    radius (float): Radius of the arch.
+    start_angle (float): Starting angle (radians).
+    angle (float): Total angle (radians) to sweep.
+    max_seg_len (float): (optional) Maximum length of each segment. Default is 1.
+    n_points (int): (optional) Number of points. If None, computed from max_seg_len.
+    anticlockwise (bool): If True, the arc is swept in the negative angular direction.
 
     Returns:
         list: A list of coordinates representing the segmented arch (coil path).
@@ -152,17 +128,21 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
         start_angle = float(start_angle)
         max_seg_len = float(max_seg_len)
     except:
-        raise ValueError("All elements in the input must be numbers, lists or arrays.")
-
-    assert radius > 0 and angle > 0, 'The radius and angle must be positive numbers'
-    assert n_points is None or isinstance(n_points, int), 'n_points must be None or an integer'
+        raise TypeError("All elements in the input must be numbers, lists or arrays.")
+    
+    if radius <= 0 or angle <= 0:
+        raise ValueError("The radius and angle must be positive numbers.")
+    if n_points is not None and not isinstance(n_points, int):
+        raise TypeError("The number of points must be a positive integer.")
+    if n_points is not None and n_points <= 0:
+        raise ValueError("The number of points must be a positive integer.")
 
     length = angle * radius
     n_points = int(length / max_seg_len) + 1 if n_points is None else n_points
     theta = angle / n_points
 
     if not anticlockwise:
-        coilPath = [
+        path = [
             [
                 center[0] + radius * cos(start_angle + i * theta),
                 center[1] + radius * sin(start_angle + i * theta),
@@ -170,8 +150,9 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
             ]
             for i in range(n_points + 1)
         ]
+
     else:
-        coilPath = [
+        path = [
             [
                 center[0] + radius * cos(start_angle - i * theta),
                 center[1] + radius * sin(start_angle - i * theta),
@@ -179,4 +160,4 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
             ]
             for i in range(n_points + 1)
         ]
-    return coilPath
+    return path
