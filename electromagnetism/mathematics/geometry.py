@@ -167,8 +167,8 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
     if not anticlockwise:
         coilPath = [
             [
-                center[0] + radius * cos(start_angle + i * theta),
-                center[1] + radius * sin(start_angle + i * theta),
+                center[0] + radius * sin(start_angle + i * theta),
+                center[1] + radius * cos(start_angle + i * theta),
                 center[2]
             ]
             for i in range(n_points + 1)
@@ -176,13 +176,14 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
     else:
         coilPath = [
             [
-                center[0] + radius * cos(start_angle - i * theta),
-                center[1] + radius * sin(start_angle - i * theta),
+                center[0] + radius * sin(start_angle - i * theta),
+                center[1] + radius * cos(start_angle - i * theta),
                 center[2]
             ]
             for i in range(n_points + 1)
         ]
     return coilPath
+#def race_track()
 
 def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
     mold = createArch([0,0,0], radius=r, start_angle=0,angle=2*pi,max_seg_len=max_seg_len)
@@ -192,4 +193,25 @@ def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
     z = [coordinate[2] for coordinate in createLine(Pa=Pa,Pb=Pb, max_seg_len=max_seg_len)]
 
     path = [[x_,y_,z_] for x_,y_,z_ in zip(x,y,z)]
+    return path
+
+def race_track(center,width: float, length: float, max_seg_len:float, int_radius:float)
+    x_0,y_0,z_0 = center[0],center[1],center[2]
+    C_1 = [x_0+width/2,y_0+length/2,z_0]
+    C_2 = [x_0+width/2,y_0-length/2,z_0]
+    C_3 = [x_0-width/2,y_0-length/2,z_0]
+    C_4 = [x_0-width/2,y_0+length/2,z_0]
+
+    arch_1 = createArch(C_1,int_radius,0,pi/2,max_seg_len=max_seg_len)
+    arch_2 = createArch(C_2,int_radius,pi/2,pi/2,max_seg_len=max_seg_len)
+    arch_3 = createArch(C_3,int_radius,pi,pi/2,max_seg_len=max_seg_len)
+    arch_4 = createArch(C_4,int_radius,pi+pi/2,pi/2,max_seg_len=max_seg_len)
+
+    line_1 = createLine(arch_1[-1],arch_2[1],max_seg_len=max_seg_len)
+    line_2 = createLine(arch_2[-1],arch_3[1],max_seg_len=max_seg_len)
+    line_3 = createLine(arch_3[-1],arch_4[1],max_seg_len=max_seg_len)
+    line_4 = createLine(arch_4[-1],arch_1[1],max_seg_len=max_seg_len)
+
+    path =  arch_1 + line_1 + arch_2 + line_2 + arch_3 + line_3 + arch_4 + line_4
+
     return path
