@@ -192,3 +192,4 @@ def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
     z = [coordinate[2] for coordinate in createLine(Pa=Pa,Pb=Pb, max_seg_len=max_seg_len)]
 
     path = [[x_,y_,z_] for x_,y_,z_ in zip(x,y,z)]
+    return path
