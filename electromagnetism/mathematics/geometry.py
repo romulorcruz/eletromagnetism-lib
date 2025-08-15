@@ -10,6 +10,8 @@ Geometrics figure coordinates generators: arch, line, racetrack.
 from numpy import sin, cos
 from constants import pi
 
+origin = [0,0,0]
+
 def circleArea(radius: float):
     '''
         Calculates the area of a circle based on its radius.
@@ -82,7 +84,7 @@ def crossSectionalArea(fill_ratio:float=1,*,radius:float=None,width:float=None,l
         raise TypeError('Invalid paramers')
       
 
-def createLine(Pa: float, Pb: float,*, max_seg_len:float = 1,n_points:int = None):
+def createLine(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
     """
         Calculates the list of coordinates (coil path) between two different points in 3D space.
 
@@ -106,7 +108,7 @@ def createLine(Pa: float, Pb: float,*, max_seg_len:float = 1,n_points:int = None
     
     assert Pa != Pb, "The initial and final points must be different."
     assert max_seg_len > 0,'The maximun segment legth must be an positive number'
-    assert isinstance(n_points) == 'NoneType' or int
+    # assert isinstance(n_points) == None or int
 
     projection = [b - a for a, b in zip(Pa, Pb)]
     length = sum(p**2 for p in projection) ** 0.5
@@ -181,3 +183,12 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
             for i in range(n_points + 1)
         ]
     return coilPath
+
+def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
+    mold = createArch([0,0,0], radius=r, start_angle=0,angle=2*pi,max_seg_len=max_seg_len)
+
+    x = [coordinate[0] for coordinate in mold]
+    y = [coordinate[1] for coordinate in mold]
+    z = [coordinate[2] for coordinate in createLine(Pa=Pa,Pb=Pb, max_seg_len=max_seg_len)]
+
+    path = [[x_,y_,z_] for x_,y_,z_ in zip(x,y,z)]
