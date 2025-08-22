@@ -111,7 +111,7 @@ class Coil:
         resistance = self._length * self._resistivity / self._crossSectionalArea
         return resistance
 
-    def __BiotSavart1pDimensionless(self, r0:ndarray):
+    def __BiotSavart1pDimensionless(self, r0:ndarray,integration_method: str = 'Gauss-Legendre'):
         '''
             Calculates the Biot-Savart integral for the point at r0.
             Neither the current nor the vacuum permissivity / 4pi are taken into account. 
@@ -130,8 +130,8 @@ class Coil:
         rMod = np.abs(rMod)[:, newaxis]
 
         dl = self.coilPath[1:] - self.coilPath[:-1]
-
-        integ = np.sum( cross(dl, rPrime) / (rMod**3), axis=0 )
+        if integration_method == 'Riemman':
+            integ = np.sum(cross(dl, rPrime) / (rMod**3), axis=0)
         return integ
 
     def biotSavart1p(self, r0:ndarray, I:float):

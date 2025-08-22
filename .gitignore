@@ -1,0 +1,28 @@
+# Python cache & compiled files
+__pycache__/
+.pytest_cache
+*.pyc
+
+# Virtual environment folders
+.venv/
+venv/
+env/
+
+# IDE and editor specific files
+.vscode/
+.idea/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Folders for data or generated results
+data/
+results/
+
+#TODO list
+todo.md
