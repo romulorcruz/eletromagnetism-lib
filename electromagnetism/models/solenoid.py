@@ -1,5 +1,6 @@
 from numpy import array, ndarray, loadtxt, moveaxis, newaxis, cross, concatenate, shape
 from numpy.linalg import norm
+from geometry import helicoid
 
 class Solenoid(Coil):
     def __init__(self, n_turns: int, z_initial_point: float, z_final_point: float, radius: float, max_seg_len: float,
@@ -18,7 +19,7 @@ class Solenoid(Coil):
         self.max_seg_len = max_seg_len
         self._resistivity = resistivity
         self._crossSectionalArea = crossSectionalArea
-        self.coilPath = np.array(self.__helicoid())
+        self.coilPath = np.array(helicoid(self.n_turns, self.z_initial_point, self.z_final_point, self.radius, self.max_seg_len))
  
  
         super().__init__(self.coilPath, invertRAxis=invertRAxis, crossSectionalArea=crossSectionalArea, resistivity=resistivity)

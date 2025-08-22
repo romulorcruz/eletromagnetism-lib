@@ -195,7 +195,7 @@ def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
     path = [[x_,y_,z_] for x_,y_,z_ in zip(x,y,z)]
     return path
 
-def race_track(center,width: float, length: float, max_seg_len:float, int_radius:float)
+def race_track(center,width: float, length: float, max_seg_len:float, int_radius:float):
     x_0,y_0,z_0 = center[0],center[1],center[2]
     C_1 = [x_0+width/2,y_0+length/2,z_0]
     C_2 = [x_0+width/2,y_0-length/2,z_0]
@@ -215,3 +215,20 @@ def race_track(center,width: float, length: float, max_seg_len:float, int_radius
     path =  arch_1 + line_1 + arch_2 + line_2 + arch_3 + line_3 + arch_4 + line_4
 
     return path
+def racetrack3d(center, inwidth, inlength, max_seg_len, int_radius, thickness):
+    
+    N_coils_h = int(thickness/max_seg_len)
+    inwidth_ = inwidth
+    inlength_ = inlength
+    int_radius_ = int_radius
+    
+    Total_racetrack = []
+    
+    for i in range (N_coils_h):
+        inwidth_ += 0.01
+        inlength_ +=0.01
+        int_radius_ += 0.01
+
+        Total_racetrack += race_track(center, inwidth_, inlength_, max_seg_len, int_radius_)
+
+    return Total_racetrack
