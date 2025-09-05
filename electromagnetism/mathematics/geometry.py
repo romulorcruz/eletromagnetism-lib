@@ -85,7 +85,7 @@ def crossSectionalArea(fill_ratio:float=1,*,radius:float=None,width:float=None,l
         raise TypeError('Invalid paramers')
       
 
-def createLine(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
+def line(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
     """
         Calculates the list of coordinates (coil path) between two different points in 3D space.
 
@@ -107,19 +107,20 @@ def createLine(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
     except:
         raise ValueError("All elements in the input must be numbers, lists or arrays.")
     
-    assert Pa.all() != Pb.all(), "The initial and final points must be different."
+    assert not np.array_equal(Pa, Pb), "The initial and final points must be different."
     assert max_seg_len > 0,'The maximun segment legth must be an positive number'
     #assert isinstance(n_points, ('None', 'int'))
     length = norm(Pa - Pb)
     assert length >= max_seg_len,'The distance between the points must be equal or higher than the maximum segment length'
     if n_points is None:
-        path = np.arange(Pa, Pb, max_seg_len)
+        n_points = int(np.ceil(length / max_seg_len)) + 1
+        path = np.linspace(Pa, Pb, n_points)
     else:
         path = np.linspace(Pa, Pb, n_points)
 
     return path
 
-def createArc(center: list, radius: float, start_angle: float, angle: float,
+def arc(center: list, radius: float, start_angle: float, angle: float,
                 max_seg_len: float, n_points=None, anticlockwise: bool = False):
     """
     Calculates the list of coordinates (coil path) in a specific arch in 3D space.
@@ -164,49 +165,45 @@ def createArc(center: list, radius: float, start_angle: float, angle: float,
     return path
 
 def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
-    mold = createArc([0,0,0], radius=r, start_angle=0,angle=2*pi,max_seg_len=max_seg_len)
+    mold = np.array(arc([0,0,0], radius=r, start_angle=0,angle=2*pi,max_seg_len=max_seg_len))
+    line_z = np.array(line(Pa=Pa, Pb=Pb, max_seg_len=max_seg_len))
+    min_len = min(mold.shape[0], line_z.shape[0])
 
-    x = [coordinate[0] for coordinate in mold]
-    y = [coordinate[1] for coordinate in mold]
-    z = [coordinate[2] for coordinate in createLine(Pa=Pa,Pb=Pb, max_seg_len=max_seg_len)]
+    x = mold[:min_len, 0]
+    y = mold[:min_len, 1]
+    z = line_z[:min_len, 2]
 
     path = np.stack([x, y, z], axis=1)
     return path
 
 def race_track(center,width: float, length: float, max_seg_len:float, int_radius:float):
-    x_0,y_0,z_0 = center[0],center[1],center[2]
-    C_1 = [x_0+width/2,y_0+length/2,z_0]
-    C_2 = [x_0+width/2,y_0-length/2,z_0]
-    C_3 = [x_0-width/2,y_0-length/2,z_0]
-    C_4 = [x_0-width/2,y_0+length/2,z_0]
+    x_0, y_0, z_0 = center[0], center[1], center[2]
 
-    arch_1 = createArc(C_1,int_radius,0,pi/2,max_seg_len=max_seg_len)
-    arch_2 = createArc(C_2,int_radius,pi/2,pi/2,max_seg_len=max_seg_len)
-    arch_3 = createArc(C_3,int_radius,pi,pi/2,max_seg_len=max_seg_len)
-    arch_4 = createArc(C_4,int_radius,pi+pi/2,pi/2,max_seg_len=max_seg_len)
+    centers = np.array([
+        [x_0 + width / 2, y_0 + length / 2, z_0],
+        [x_0 + width / 2, y_0 - length / 2, z_0],
+        [x_0 - width / 2, y_0 - length / 2, z_0],
+        [x_0 - width / 2, y_0 + length / 2, z_0]
+    ])
 
-    line_1 = createLine(arch_1[-1],arch_2[1],max_seg_len=max_seg_len)
-    line_2 = createLine(arch_2[-1],arch_3[1],max_seg_len=max_seg_len)
-    line_3 = createLine(arch_3[-1],arch_4[1],max_seg_len=max_seg_len)
-    line_4 = createLine(arch_4[-1],arch_1[1],max_seg_len=max_seg_len)
-
-    path =  arch_1 + line_1 + arch_2 + line_2 + arch_3 + line_3 + arch_4 + line_4
+    arc_angles = np.array([0, np.pi / 2, np.pi, 3 * np.pi / 2])
+    arcs = [arc(centers[i], int_radius, arc_angles[i], np.pi/2, max_seg_len) for i in range(4)]
+    lines = [
+        line(arcs[0][-1], arcs[1][1], max_seg_len=max_seg_len),
+        line(arcs[1][-1], arcs[2][1], max_seg_len=max_seg_len),
+        line(arcs[2][-1], arcs[3][1], max_seg_len=max_seg_len),
+        line(arcs[3][-1], arcs[0][1], max_seg_len=max_seg_len)
+    ]
+    path = np.concatenate([arcs[0], lines[0], arcs[1], lines[1], arcs[2], lines[2], arcs[3], lines[3]], axis=0)
 
     return path
+
 def racetrack3d(center, inwidth, inlength, max_seg_len, int_radius, thickness):
-    
-    N_coils_h = int(thickness/max_seg_len)
-    inwidth_ = inwidth
-    inlength_ = inlength
-    int_radius_ = int_radius
-    
-    Total_racetrack = []
-    
-    for i in range (N_coils_h):
-        inwidth_ += 0.01
-        inlength_ +=0.01
-        int_radius_ += 0.01
+    N_coils_h = int(thickness / max_seg_len)
 
-        Total_racetrack += race_track(center, inwidth_, inlength_, max_seg_len, int_radius_)
+    inwidths = inwidth + max_seg_len * np.arange(N_coils_h)
+    inlengths = inlength + max_seg_len * np.arange(N_coils_h)
+    int_radii = int_radius + max_seg_len * np.arange(N_coils_h)
 
-    return Total_racetrack
+    racetracks = [race_track(center, w, l, max_seg_len, r) for w, l, r in zip(inwidths, inlengths, int_radii)]
+    return np.concatenate(racetracks, axis=0)
