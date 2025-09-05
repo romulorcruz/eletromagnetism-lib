@@ -7,7 +7,7 @@ Contains:
 Area calculations: circle, rectangle, square.
 Geometrics figure coordinates generators: arch, line, racetrack.
 """
-from numpy import sin, cos, linspace, array, moveaxis
+import numpy as np
 from numpy.linalg import norm
 from .constants import pi
 
@@ -100,8 +100,8 @@ def createLine(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
     """
     # Transform all the objects in float if they are compactible, otherwise it will raise a value error
     try:
-        Pa = array([float(coordinate) for coordinate in Pa])
-        Pb = array([float(coordinate) for coordinate in Pb])
+        Pa = np.array([float(coordinate) for coordinate in Pa])
+        Pb = np.array([float(coordinate) for coordinate in Pb])
         max_seg_len = float(max_seg_len)
 
     except:
@@ -112,18 +112,14 @@ def createLine(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
     #assert isinstance(n_points, ('None', 'int'))
     length = norm(Pa - Pb)
     assert length >= max_seg_len,'The distance between the points must be equal or higher than the maximum segment length'
-    if n_points == None:
-        n_points = int(round(length/max_seg_len))
-    path = [
-        linspace(Pa[0],Pb[0],n_points),
-        linspace(Pa[1],Pb[1],n_points),
-        linspace(Pa[2],Pb[2],n_points)]
-    path = moveaxis(path, 0, 1)
+    if n_points is None:
+        path = np.arange(Pa, Pb, max_seg_len)
+    else:
+        path = np.linspace(Pa, Pb, n_points)
 
     return path
 
-
-def createArch(center: list, radius: float, start_angle: float, angle: float,
+def createArc(center: list, radius: float, start_angle: float, angle: float,
                 max_seg_len: float, n_points=None, anticlockwise: bool = False):
     """
     Calculates the list of coordinates (coil path) in a specific arch in 3D space.
@@ -151,38 +147,30 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
     assert radius > 0 and angle > 0, 'The radius and angle must be positive numbers'
     assert n_points is None or isinstance(n_points, int), "n_points must be None or an integer"
 
-    length = angle * radius
-    n_points = int(length / max_seg_len) + 1 if n_points is None else n_points
-    theta = angle / n_points
-
-    if not anticlockwise:
-        coilPath = [
-            [
-                center[0] + radius * sin(start_angle + i * theta),
-                center[1] + radius * cos(start_angle + i * theta),
-                center[2]
-            ]
-            for i in range(n_points + 1)
-        ]
+    if n_points is not None:
+        angles = np.linspace(start_angle, angle, n_points)
     else:
-        coilPath = [
-            [
-                center[0] + radius * sin(start_angle - i * theta),
-                center[1] + radius * cos(start_angle - i * theta),
-                center[2]
-            ]
-            for i in range(n_points + 1)
-        ]
-    return coilPath
+        arc_length = abs(angle) * radius
+        n_segments = int(arc_length / max_seg_len) + 1
+        angles = np.linspace(start_angle, start_angle + angle, n_segments)
+    if not anticlockwise:
+        x = center[0] + radius * np.sin(angles)
+        y = center[1] + radius * np.cos(angles)
+    else:
+        x = center[0] - radius * np.sin(angles)
+        y = center[1] - radius * np.cos(angles)
+    z = np.full_like(angles, center[2])
+    path = np.stack([x, y, z], axis=1)
+    return path
 
 def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
-    mold = createArch([0,0,0], radius=r, start_angle=0,angle=2*pi,max_seg_len=max_seg_len)
+    mold = createArc([0,0,0], radius=r, start_angle=0,angle=2*pi,max_seg_len=max_seg_len)
 
     x = [coordinate[0] for coordinate in mold]
     y = [coordinate[1] for coordinate in mold]
     z = [coordinate[2] for coordinate in createLine(Pa=Pa,Pb=Pb, max_seg_len=max_seg_len)]
 
-    path = [[x_,y_,z_] for x_,y_,z_ in zip(x,y,z)]
+    path = np.stack([x, y, z], axis=1)
     return path
 
 def race_track(center,width: float, length: float, max_seg_len:float, int_radius:float):
@@ -192,10 +180,10 @@ def race_track(center,width: float, length: float, max_seg_len:float, int_radius
     C_3 = [x_0-width/2,y_0-length/2,z_0]
     C_4 = [x_0-width/2,y_0+length/2,z_0]
 
-    arch_1 = createArch(C_1,int_radius,0,pi/2,max_seg_len=max_seg_len)
-    arch_2 = createArch(C_2,int_radius,pi/2,pi/2,max_seg_len=max_seg_len)
-    arch_3 = createArch(C_3,int_radius,pi,pi/2,max_seg_len=max_seg_len)
-    arch_4 = createArch(C_4,int_radius,pi+pi/2,pi/2,max_seg_len=max_seg_len)
+    arch_1 = createArc(C_1,int_radius,0,pi/2,max_seg_len=max_seg_len)
+    arch_2 = createArc(C_2,int_radius,pi/2,pi/2,max_seg_len=max_seg_len)
+    arch_3 = createArc(C_3,int_radius,pi,pi/2,max_seg_len=max_seg_len)
+    arch_4 = createArc(C_4,int_radius,pi+pi/2,pi/2,max_seg_len=max_seg_len)
 
     line_1 = createLine(arch_1[-1],arch_2[1],max_seg_len=max_seg_len)
     line_2 = createLine(arch_2[-1],arch_3[1],max_seg_len=max_seg_len)
