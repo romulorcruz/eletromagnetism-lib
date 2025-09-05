@@ -7,8 +7,9 @@ Contains:
 Area calculations: circle, rectangle, square.
 Geometrics figure coordinates generators: arch, line, racetrack.
 """
-from numpy import sin, cos
-from constants import pi
+from numpy import sin, cos, linspace, array, moveaxis
+from numpy.linalg import norm
+from .constants import pi
 
 origin = [0,0,0]
 
@@ -99,37 +100,27 @@ def createLine(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
     """
     # Transform all the objects in float if they are compactible, otherwise it will raise a value error
     try:
-        Pa = [float(coordinate) for coordinate in Pa]
-        Pb = [float(coordinate) for coordinate in Pb]
+        Pa = array([float(coordinate) for coordinate in Pa])
+        Pb = array([float(coordinate) for coordinate in Pb])
         max_seg_len = float(max_seg_len)
 
     except:
         raise ValueError("All elements in the input must be numbers, lists or arrays.")
     
-    assert Pa != Pb, "The initial and final points must be different."
+    assert Pa.all() != Pb.all(), "The initial and final points must be different."
     assert max_seg_len > 0,'The maximun segment legth must be an positive number'
-    # assert isinstance(n_points) == None or int
+    #assert isinstance(n_points, ('None', 'int'))
+    length = norm(Pa - Pb)
+    assert length >= max_seg_len,'The distance between the points must be equal or higher than the maximum segment length'
+    if n_points == None:
+        n_points = int(round(length/max_seg_len))
+    path = [
+        linspace(Pa[0],Pb[0],n_points),
+        linspace(Pa[1],Pb[1],n_points),
+        linspace(Pa[2],Pb[2],n_points)]
+    path = moveaxis(path, 0, 1)
 
-    projection = [b - a for a, b in zip(Pa, Pb)]
-    length = sum(p**2 for p in projection) ** 0.5
-
-    assert length >= max_seg_len,'The distance between the points must be equal'
-    'or higher than the maximum segment length'
-
-    max_seg_len = length/n_points if n_points != None else max_seg_len
-
-    ratio = length / max_seg_len
-    coilPath = [
-        [projection[0] / ratio * i + Pa[0],
-         projection[1] / ratio * i + Pa[1],
-         projection[2] / ratio * i + Pa[2]]
-        for i in range(int(ratio) + 1)
-    ]
-
-    if Pb not in coilPath:
-        coilPath.append(Pb)
-
-    return coilPath
+    return path
 
 
 def createArch(center: list, radius: float, start_angle: float, angle: float,
@@ -158,7 +149,7 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
         raise ValueError("All elements in the input must be numbers, lists or arrays.")
 
     assert radius > 0 and angle > 0, 'The radius and angle must be positive numbers'
-    assert n_points is None or isinstance(n_points, int), 'n_points must be None or an integer'
+    assert n_points is None or isinstance(n_points, int), "n_points must be None or an integer"
 
     length = angle * radius
     n_points = int(length / max_seg_len) + 1 if n_points is None else n_points
@@ -183,7 +174,6 @@ def createArch(center: list, radius: float, start_angle: float, angle: float,
             for i in range(n_points + 1)
         ]
     return coilPath
-#def race_track()
 
 def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
     mold = createArch([0,0,0], radius=r, start_angle=0,angle=2*pi,max_seg_len=max_seg_len)
