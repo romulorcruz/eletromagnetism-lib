@@ -198,7 +198,7 @@ def race_track(center,width: float, length: float, max_seg_len:float, int_radius
 
     return path
 
-def racetrack3d(center, inwidth, inlength, max_seg_len, int_radius, thickness):
+def racetrack2d(center, inwidth, inlength, max_seg_len, int_radius, thickness):
     N_coils_h = int(thickness / max_seg_len)
 
     inwidths = inwidth + max_seg_len * np.arange(N_coils_h)
@@ -207,3 +207,18 @@ def racetrack3d(center, inwidth, inlength, max_seg_len, int_radius, thickness):
 
     racetracks = [race_track(center, w, l, max_seg_len, r) for w, l, r in zip(inwidths, inlengths, int_radii)]
     return np.concatenate(racetracks, axis=0)
+
+def racetrack3d(center, inwidth, inlength, max_seg_len, int_radius, thickness, height):
+    
+    if height == 0:
+        return racetrack2d(center, inwidth, inlength, max_seg_len, int_radius, thickness)
+    
+    N_layers = int(height / max_seg_len)                                            
+    z_space = np.arange(N_layers) * max_seg_len                           
+    z_coords = [center[2] + z for z in z_space]
+    all_layers = [
+        racetrack2d(np.array([center[0], center[1], z]), inwidth, inlength, max_seg_len, int_radius, thickness)
+        for z in z_coords
+    ]
+
+    return np.concatenate(all_layers, axis=0)
