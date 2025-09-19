@@ -226,13 +226,7 @@ class Coil:
         dissipationPotency = self._resistance * I**2
         return dissipationPotency
 
-<<<<<<< HEAD
-    def plot(self):
-        fig = px.line_3d(test, x = test[:,0], y = test[:,1], z = test[:,2])
-        fig.show()
-    
-=======
->>>>>>> 12ba16f5acda3156fedff789da0aea91e22cb0dc
+
     def cloud(self, n):
         min = np.min(self.coilPath)
         max = np.max(self.coilPath)
@@ -243,6 +237,12 @@ class Coil:
 
         space = np.moveaxis(np.array([xs,ys,zs]), 1,0)
         return space
+    
+    
+    def plot(self):
+        fig = px.line_3d(test, x = test[:,0], y = test[:,1], z = test[:,2])
+        fig.show()
+    
     
 class Solenoid(Coil):
     def __init__(self, n_turns: int, z_initial_point: float, z_final_point: float, radius: float, max_seg_len: float,
