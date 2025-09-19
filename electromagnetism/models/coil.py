@@ -241,7 +241,7 @@ class Coil:
     
     
     def plot(self):
-        fig = px.line_3d(test, x = test[:,0], y = test[:,1], z = test[:,2])
+        fig = px.line_3d(self.coilPath, x = self.coilPath[:,0], y = self.coilPath[:,1], z = self.coilPath[:,2])
         fig.show()
     
     
