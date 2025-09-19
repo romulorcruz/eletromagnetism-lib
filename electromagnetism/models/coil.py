@@ -13,6 +13,7 @@ import numpy as np
 from ..mathematics.constants import MU0_PRIME
 from electromagnetism.mathematics.geometry import helicoid
 from electromagnetism.mathematics.geometry import racetrack3d
+import plotly.express as px
 
 class Coil:
     """Coil class.
