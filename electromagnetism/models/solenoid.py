@@ -1,9 +1,10 @@
 from numpy import array, ndarray, loadtxt, moveaxis, newaxis, cross, concatenate, shape
+import numpy as np
 from numpy.linalg import norm
-from geometry import helicoid
+from electromagnetism.mathematics.geometry import helicoid
 
 class Solenoid(Coil):
-    def __init__(self, n_turns: int, z_initial_point: float, z_final_point: float, radius: float, max_seg_len: float,
+    def __init__(self, n_turns: int, initial_point, final_point, radius: float, max_seg_len: float,
                  *, crossSectionalArea: float = 1.0, resistivity: float = 1.7e-8,invertRAxis: bool = False):
 
         if n_turns <= 0:
