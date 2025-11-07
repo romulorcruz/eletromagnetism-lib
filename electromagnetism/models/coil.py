@@ -14,28 +14,10 @@ from ..mathematics.constants import MU0_PRIME
 from electromagnetism.mathematics.geometry import helicoid
 from electromagnetism.mathematics.geometry import racetrack3d
 import plotly.express as px
-
+from scipy.integrate import simpson
 class Coil:
-    """Coil class.
-    This class encapsulate the properties of a single electromagnetic coil. It provides 
-    functionalities for calculating intrinsic properties like length and resistance, and 
-    computing the magnetic field it generates at various points in space using numerical 
-    methods (e.g., Biot-Savart Law)."""
     def __init__(self, coilPath:ndarray, invertRAxis:bool=False,
                  *, crossSectionalArea:float = 1 , resistivity:float=1.7e-8):
-        '''
-            initialize a instance from Coil class
-        
-
-            :param coilPath numpy.ndarray: the ordered array of points where the path goes trough.
-            :param invertRAxis bol: (optional) used if the coilPath is in the format of 
-            [[X1,Y1,Z1],...] rather than [[X], [Y], [Z]].
-            :param crossSectionalArea float: (optional) the area of a cross section of the wire in 
-            squared meters, the default is unitary.
-            :param resistivity float: (optional) the resistivity of the wire material in Ohm meter, 
-            the default is copper.
-
-        '''
         if isinstance(coilPath, str):
             self.coilPath = loadtxt(coilPath)
         else:
@@ -62,10 +44,6 @@ class Coil:
     def resistivity (self, new_resistivity):
         '''
             Sets the resistivity value of the wire material.
-
-            :param new_resistivity float: A new value for the resistivity that must be positive.
-
-            :raises ValueError: if new_resistance is not positive.
         '''
         if new_resistivity <= 0:
             raise ValueError("The value must be positive")
@@ -90,10 +68,6 @@ class Coil:
     def resistance (self, new_resistance):
         '''
             Manually sets the resistance value of the coil.
-
-            :param new_resistance float: A new value for the resistance that must be positive.
-
-            :raises ValueError: if new_resistance is not positive.
         '''
         if new_resistance <= 0:
             raise ValueError("The value must be positive")
@@ -138,25 +112,13 @@ class Coil:
             return integ
 
         elif integration_method == 'Simpson':
+            avgR = 0.5 * (self.coilPath[:-1] + self.coilPath[1:])
+            dl = self.coilPath[1:] - self.coilPath[:-1]
+            rPrime = r0 - avgR
 
-            points = self.coilPath
-            rPrime = r0 - self.coilPath
-            rMod = norm(rPrime, axis=1)
-            epsilon = 1e-12
-            rMod = np.maximum(rMod, epsilon)
-            dl = np.gradient(self.coilPath, axis=0)
-            integrand = np.cross(dl, rPrime) / rMod[:, np.newaxis]**3
-
-            h = norm(self.coilPath[1] - self.coilPath[0])
-
-            weights = 2 * np.ones(len(self.coilPath))
-            weights[1::2] = 4
-            weights[0], weights[-1] = 1, 1
-
-            integ = (h/3) * np.sum(integrand * weights[:, np.newaxis], axis=0)
+            integrand = np.cross(dl, rPrime) / norm(rPrime, axis=1)[:, np.newaxis]**3
+            integ = simpson(integrand, axis=0)
             return integ
-
-
 
     def biotSavart1p(self, r0:ndarray, I:float):
         '''
@@ -175,7 +137,7 @@ class Coil:
         integ = self.__BiotSavart1pDimensionless(r0)
         return integ*outsideValue
 
-    def biotSavart3d( self, pointsList:ndarray, I:float = 1, invertPAxis:bool=False ):
+    def biotSavart3d( self, pointsList:ndarray, I:float = 1, invertPAxis:bool=False, * ,integration_method: str = 'Simpson' ):
         '''
             Calculates the magnetic fields for an array of points in space by using Biot-Savart
             and assuming constant current.
@@ -197,14 +159,11 @@ class Coil:
         pListLen = shape(pointsList)[0]
         results = []
         for i in range(pListLen):
-            singleResult = self.__BiotSavart1pDimensionless(pointsList[i])
+            singleResult = self.__BiotSavart1pDimensionless(pointsList[i], integration_method=integration_method)
             results.append(singleResult)
 
           # Multiplies the integrals by the outside factor.
         results = array(results) * I * MU0_PRIME
-
-        # Returns the lists to the default orientation and concatenates the
-        # new data to each position.
         results = moveaxis(results, 0, 1)
         pointsList = moveaxis(pointsList, 0, 1)
         # returnal ends up looking like [[X], [Y], [Z], [Bx], [By], [Bz]]
@@ -239,11 +198,9 @@ class Coil:
         space = np.moveaxis(np.array([xs,ys,zs]), 1,0)
         return space
     
-    
     def plot(self):
         fig = px.line_3d(self.coilPath, x = self.coilPath[:,0], y = self.coilPath[:,1], z = self.coilPath[:,2])
         fig.show()
-    
     
 class Solenoid(Coil):
     def __init__(self, n_turns: int, z_initial_point: float, z_final_point: float, radius: float, max_seg_len: float,
@@ -270,6 +227,7 @@ class Solenoid(Coil):
 class Racetrack(Coil):
     
     def __init__(self, center, inwidth: float, inlength: float, max_seg_len: float, int_radius: float, thickness: float,
+                 height: float,
                  *, crossSectionalArea: float = 1.0, resistivity: float = 1.7e-8,invertRAxis: bool = False):
         if int_radius <= 0:
             raise ValueError("Invalid parameters.")
@@ -284,8 +242,9 @@ class Racetrack(Coil):
         self.thickness = thickness
         self._resistivity = resistivity
         self._crossSectionalArea = crossSectionalArea
+        self.height = height
         self.coilPath = np.array(racetrack3d(self.center, self.inwidth, self.inlength, self.max_seg_len,
-                                             self.int_radius, self.thickness))
+                                             self.int_radius, self.thickness, self.height))
         
         super().__init__(self.coilPath, invertRAxis=invertRAxis, crossSectionalArea=crossSectionalArea, resistivity=resistivity)
     
