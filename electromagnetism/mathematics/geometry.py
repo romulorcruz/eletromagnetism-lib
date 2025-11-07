@@ -165,6 +165,16 @@ def arc(center: list, radius: float, start_angle: float, angle: float,
     return path
 
 def helicoid(n: int, Pa, z_len, r: float, max_seg_len: float):
+    """Returns an helicoid path
+
+    :n|int: number of turns of the helicoid
+    :Pa|ArrayLike: origin of the helicoid object
+    :z_len|float: the length of the helicoid trought the dimension that is not arch
+    :max_seg_len|float: the max distance between the points
+
+    Returns:
+        path of the helicoid
+    """
     total_angle = n * 2 * np.pi
     
     spiral_mold = np.array(arc(Pa, radius=r, start_angle=0,
@@ -172,10 +182,8 @@ def helicoid(n: int, Pa, z_len, r: float, max_seg_len: float):
                                max_seg_len=max_seg_len))
     x = spiral_mold[:, 0]
     y = spiral_mold[:, 1]
-
     z = np.linspace(Pa[2], Pa[2] + z_len, num=x.shape[0])
 
-    
     path = np.stack([x, y, z], axis=1)
     return path
 
