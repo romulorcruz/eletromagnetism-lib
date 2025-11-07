@@ -136,6 +136,7 @@ def arc(center: list, radius: float, start_angle: float, angle: float,
     Returns:
         list: A list of coordinates representing the segmented arch (coil path).
     """
+    end_angle = start_angle + angle    
     try:
         center = [float(coordinate) for coordinate in center]
         radius = float(radius)
@@ -149,19 +150,21 @@ def arc(center: list, radius: float, start_angle: float, angle: float,
     assert n_points is None or isinstance(n_points, int), "n_points must be None or an integer"
 
     if n_points is not None:
-        angles = np.linspace(start_angle, angle, n_points)
+            angles = np.linspace(start_angle, end_angle, n_points)
     else:
         arc_length = abs(angle) * radius
-        n_segments = int(arc_length / max_seg_len) + 1
-        angles = np.linspace(start_angle, start_angle + angle, n_segments)
+        n_segments = int(np.ceil(arc_length / max_seg_len))
+        angles = np.linspace(start_angle, end_angle, n_segments)
     if not anticlockwise:
-        x = center[0] + radius * np.sin(angles)
-        y = center[1] + radius * np.cos(angles)
+        x = center[0] + radius * np.cos(angles)
+        y = center[1] + radius * np.sin(angles)
     else:
-        x = center[0] - radius * np.sin(angles)
-        y = center[1] - radius * np.cos(angles)
+        x = center[0] - radius * np.cos(angles)
+        y = center[1] - radius * np.sin(angles)
+
     z = np.full_like(angles, center[2])
     path = np.stack([x, y, z], axis=1)
+
     return path
 
 def helicoid(n: int, Pa, z_len, r: float, max_seg_len: float):
@@ -187,25 +190,40 @@ def helicoid(n: int, Pa, z_len, r: float, max_seg_len: float):
     path = np.stack([x, y, z], axis=1)
     return path
 
-def race_track(center,width: float, length: float, max_seg_len:float, int_radius:float):
+def race_track(center, width: float, length: float, max_seg_len: float, int_radius: float):
     x_0, y_0, z_0 = center[0], center[1], center[2]
 
+    w_adj = (width / 2) - int_radius
+    l_adj = (length / 2) - int_radius
+
     centers = np.array([
-        [x_0 + width / 2, y_0 + length / 2, z_0],
-        [x_0 + width / 2, y_0 - length / 2, z_0],
-        [x_0 - width / 2, y_0 - length / 2, z_0],
-        [x_0 - width / 2, y_0 + length / 2, z_0]
+        [x_0 + w_adj, y_0 + l_adj, z_0], # 0: Top-Right
+        [x_0 + w_adj, y_0 - l_adj, z_0], # 1: Bottom-Right
+        [x_0 - w_adj, y_0 - l_adj, z_0], # 2: Bottom-Left
+        [x_0 - w_adj, y_0 + l_adj, z_0]  # 3: Top-Left
     ])
 
-    arc_angles = np.array([0, np.pi / 2, np.pi, 3 * np.pi / 2])
+
+    arc_angles = np.array([0, 3 * np.pi / 2, np.pi, np.pi / 2])
     arcs = [arc(centers[i], int_radius, arc_angles[i], np.pi/2, max_seg_len) for i in range(4)]
+    
     lines = [
-        line(arcs[0][-1], arcs[1][1], max_seg_len=max_seg_len),
-        line(arcs[1][-1], arcs[2][1], max_seg_len=max_seg_len),
-        line(arcs[2][-1], arcs[3][1], max_seg_len=max_seg_len),
-        line(arcs[3][-1], arcs[0][1], max_seg_len=max_seg_len)
+        np.moveaxis(line(arcs[1][-1], arcs[0][0], max_seg_len=max_seg_len),0,1),
+        np.moveaxis(line(arcs[2][-1], arcs[1][0], max_seg_len=max_seg_len),0,1),
+        np.moveaxis(line(arcs[3][-1], arcs[2][0], max_seg_len=max_seg_len),0,1),
+        np.moveaxis(line(arcs[0][-1], arcs[3][0], max_seg_len=max_seg_len),0,1) 
     ]
-    path = np.concatenate([arcs[0], lines[0], arcs[1], lines[1], arcs[2], lines[2], arcs[3], lines[3]], axis=0)
+
+    path = np.concatenate([
+        arcs[0],      # Top-Right
+        lines[3][1:], # Top
+        arcs[3][1:],  # Top-Left
+        lines[2][1:], # Left
+        arcs[2][1:],  # Bottom-Left
+        lines[1][1:], # Bottom
+        arcs[1][1:],  # Bottom-Right
+        lines[0][1:]  # Right
+    ], axis=0)
 
     return path
 
