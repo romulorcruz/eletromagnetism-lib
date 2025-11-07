@@ -114,9 +114,9 @@ def line(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
     assert length >= max_seg_len,'The distance between the points must be equal or higher than the maximum segment length'
     if n_points is None:
         n_points = int(np.ceil(length / max_seg_len)) + 1
-        path = np.linspace(Pa, Pb, n_points)
+        path = np.moveaxis(np.linspace(Pa, Pb, n_points),0,1)
     else:
-        path = np.linspace(Pa, Pb, n_points)
+        path = np.moveaxis(np.linspace(Pa, Pb, n_points),0,1)
 
     return path
 
@@ -164,15 +164,18 @@ def arc(center: list, radius: float, start_angle: float, angle: float,
     path = np.stack([x, y, z], axis=1)
     return path
 
-def helicoid(n: int, Pa,Pb,r:float, max_seg_len:float) :
-    mold = np.array(arc([0,0,0], radius=r, start_angle=0,angle=2*pi,max_seg_len=max_seg_len))
-    line_z = np.array(line(Pa=Pa, Pb=Pb, max_seg_len=max_seg_len))
-    min_len = min(mold.shape[0], line_z.shape[0])
+def helicoid(n: int, Pa, z_len, r: float, max_seg_len: float):
+    total_angle = n * 2 * np.pi
+    
+    spiral_mold = np.array(arc(Pa, radius=r, start_angle=0,
+                               angle=total_angle,
+                               max_seg_len=max_seg_len))
+    x = spiral_mold[:, 0]
+    y = spiral_mold[:, 1]
 
-    x = mold[:min_len, 0]
-    y = mold[:min_len, 1]
-    z = line_z[:min_len, 2]
+    z = np.linspace(Pa[2], Pa[2] + z_len, num=x.shape[0])
 
+    
     path = np.stack([x, y, z], axis=1)
     return path
 
