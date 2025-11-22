@@ -3,7 +3,7 @@
 This module defines the `Coil` class, encapsulating the properties of a 
 single electromagnetic coil. It provides functionalities for calculating
 intrinsic properties like length and resistance, and computing the 
-magnetic field it generates at various points in space using numerical 
+magnetic field it generates at various space in space using numerical 
 methods (e.g., Biot-Savart Law).
 """
 
@@ -114,7 +114,7 @@ class Coil:
         '''
             Calculates the Biot-Savart integral for the point at r0.
             Neither the current nor the vacuum permissivity / 4pi are taken into account. 
-            This makes the process of aclculating multiple points faster.
+            This makes the process of aclculating multiple space faster.
 
             :param r0 numpy.ndarray(float): the point to check for the magnetic field.
 
@@ -157,39 +157,39 @@ class Coil:
         integ = self.__BiotSavart1pDimensionless(r0)
         return integ*outsideValue
 
-    def biotSavart3d( self, pointsList:ndarray, I:float = 1, invertPAxis:bool=False, * ,integration_method: str = 'Simpson' ):
+    def biotSavart3d( self, spaceList:ndarray, I:float = 1, invertPAxis:bool=False, * ,integration_method: str = 'Simpson' ):
         '''
-            Calculates the magnetic fields for an array of points in space by using Biot-Savart
+            Calculates the magnetic fields for an array of space in space by using Biot-Savart
             and assuming constant current.
 
-            :param pointsList numpy.ndarray: the array of points to check for the magnetic field.
+            :param spaceList numpy.ndarray: the array of space to check for the magnetic field.
             :param I float: (optional) the current going through the coil, in Amperes.
-            :param invertPAxis bool: (optional) whether the pointsList is in the format of 
+            :param invertPAxis bool: (optional) whether the spaceList is in the format of 
             [[x1,y1,z1],...] rather than [[X], [Y], [Z]].
 
             :returns numpy.ndarray: a list of coordinates and the respective magnetic field values 
             for each point caused by the coilPath.
-                The format is in the same shape as pointsList, beign either 
+                The format is in the same shape as spaceList, beign either 
                 [[x1,y1,z1,bx1,by1,bz1],...] for [[X],[Y],[Z],[Bx],[By],[Bz]].
         '''
 
         if invertPAxis:
-            pointsList = moveaxis(pointsList, 0, 1)
+            spaceList = moveaxis(spaceList, 0, 1)
 
-        pListLen = shape(pointsList)[0]
+        pListLen = shape(spaceList)[0]
         results = []
         for i in range(pListLen):
-            singleResult = self.__BiotSavart1pDimensionless(pointsList[i], integration_method=integration_method)
+            singleResult = self.__BiotSavart1pDimensionless(spaceList[i], integration_method=integration_method)
             results.append(singleResult)
 
         # Multiplies the integrals by the outside factor.
         results = array(results) * I * MU0_PRIME
         # returnal ends up looking like [[X], [Y], [Z], [Bx], [By], [Bz]]
         results = moveaxis(results, 0, 1)
-        pointsList = moveaxis(pointsList, 0, 1)
-        returnal = concatenate((pointsList, results))
+        spaceList = moveaxis(spaceList, 0, 1)
+        returnal = concatenate((spaceList, results))
 
-        # Returns the new data in the same orientation that pointsList was given.
+        # Returns the new data in the same orientation that spaceList was given.
         if invertPAxis:
             returnal = moveaxis(returnal, 0, 1)
         return returnal
@@ -208,15 +208,22 @@ class Coil:
 
 
     def cloud(self, n):
-        min = np.min(self.coilPath)
-        max = np.max(self.coilPath)
+        x = np.linspace(self.coilPath[:,0].min()-n, self.coilPath[:,0].max()+n,15)
+        y = np.linspace(self.coilPath[:,1].min()-n, self.coilPath[:,1].max()+n,15)
+        z = np.linspace(self.coilPath[:,2].min()-n, self.coilPath[:,2].max()+n,15)
 
-        xs = np.linspace(min, max, n)
-        ys = np.linspace(min, max, n)
-        zs = np.linspace(min, max, n)
+        xx,yy, zz = np.meshgrid(x,y,z)
+        space = np.zeros((x.shape[0] * y.shape[0] * z.shape[0], 3))
+        space[:, 0] = xx.flatten()
+        space[:, 1] = yy.flatten()
+        space[:, 2] = zz.flatten()
 
-        space = np.moveaxis(np.array([xs,ys,zs]), 1,0)
-        return space
+        b = self.biotSavart3d(space,10000)
+        b_t = np.linalg.norm((b[3],b[4],b[5]), axis=0)
+        b = np.concatenate((b,[b_t]))
+        px.scatter_3d(b, x = b[0], y = b[1], z = b[2], color=b[6], opacity=1).show()
+
+        return b, space
     
     def plot(self):
         pts = self.coilPath  # (N, 3)
@@ -275,7 +282,8 @@ class Solenoid(Coil):
         self.max_seg_len = max_seg_len
         self._resistivity = resistivity
         self._crossSectionalArea = crossSectionalArea
-        self.coilPath = np.array(helicoid(self.n_turns, [0,0,self.z_initial_point], [0,0,self.z_final_point], self.radius, self.max_seg_len))
+        self.coilPath = np.array(helicoid(self.n_turns, [0,0,self.z_initial_point],
+            self.z_initial_point + self.z_final_point, self.radius, self.max_seg_len))
  
  
         super().__init__(self.coilPath, invertRAxis=invertRAxis, crossSectionalArea=crossSectionalArea, resistivity=resistivity)
