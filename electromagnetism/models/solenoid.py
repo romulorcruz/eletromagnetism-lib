@@ -24,5 +24,3 @@ class Solenoid(Coil):
  
  
         super().__init__(self.coilPath, invertRAxis=invertRAxis, crossSectionalArea=crossSectionalArea, resistivity=resistivity)
-
-    

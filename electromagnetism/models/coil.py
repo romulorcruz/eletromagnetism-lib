@@ -23,7 +23,7 @@ class Coil:
         else:
             self.coilPath = coilPath
 
-        if not invertRAxis:
+        if invertRAxis:
             self.coilPath = moveaxis(self.coilPath, 0, 1)
         if crossSectionalArea is None:
             raise ValueError('Insert a valid cross sectional area')
@@ -72,6 +72,27 @@ class Coil:
         if new_resistance <= 0:
             raise ValueError("The value must be positive")
         self._resistance = new_resistance
+    
+    @property
+    def crossSectionalArea(self):
+        '''
+            Returns the Cross Sectional Area of the wire.
+        '''
+        return self._crossSectionalArea
+ 
+    @crossSectionalArea.setter
+    def crossSectionalArea(self, new_Cross_sec_area):
+        '''
+            Sets the cross Sectional Area value of the wire .
+ 
+            :param new_Cross_sec_area float: A new value for the cross sectional area that must be positive.
+ 
+            :raises ValueError: if new_Cross_sec_area is not positive.
+        '''
+        if new_Cross_sec_area <= 0:
+            raise ValueError("The value must be positive")
+        self._crossSectionalArea = new_Cross_sec_area
+        self._resistance = self.__calculateCoilResistance()
 
     def __calculateCoilLength(self):
         '''
@@ -133,7 +154,6 @@ class Coil:
          '''
         outsideValue = I*MU0_PRIME
 
-        # Calculates the integral.
         integ = self.__BiotSavart1pDimensionless(r0)
         return integ*outsideValue
 
@@ -162,11 +182,11 @@ class Coil:
             singleResult = self.__BiotSavart1pDimensionless(pointsList[i], integration_method=integration_method)
             results.append(singleResult)
 
-          # Multiplies the integrals by the outside factor.
+        # Multiplies the integrals by the outside factor.
         results = array(results) * I * MU0_PRIME
+        # returnal ends up looking like [[X], [Y], [Z], [Bx], [By], [Bz]]
         results = moveaxis(results, 0, 1)
         pointsList = moveaxis(pointsList, 0, 1)
-        # returnal ends up looking like [[X], [Y], [Z], [Bx], [By], [Bz]]
         returnal = concatenate((pointsList, results))
 
         # Returns the new data in the same orientation that pointsList was given.
@@ -199,9 +219,45 @@ class Coil:
         return space
     
     def plot(self):
-        fig = px.line_3d(self.coilPath, x = self.coilPath[:,0], y = self.coilPath[:,1], z = self.coilPath[:,2])
-        fig.show()
-    
+        pts = self.coilPath  # (N, 3)
+        x, y, z = pts[:, 0], pts[:, 1], pts[:, 2]
+ 
+        copper_metallic = [
+            [0.00, "#2b1306"],  # marrom bem escuro, sombra
+            [0.20, "#5a2610"],  # marrom avermelhado
+            [0.40, "#8c3f1c"],  # cobre escuro
+            [0.60, "#c7632a"],  # cobre médio
+            [0.80, "#e9924a"],  # cobre mais claro/brilho
+            [1.00, "#ffe0b3"],  # highlight quase dourado
+        ]
+ 
+        fig = go.Figure(
+            data=[
+                go.Scatter3d(
+                    x=x,
+                    y=y,
+                    z=z,
+                    mode="lines",
+                    line=dict(
+                        width=6,
+                        color=z,                 # usa z como “valor” de cor
+                        colorscale=copper_metallic,     # ou "Viridis", "Turbo", etc.
+                        cmin=float(z.min()),
+                        cmax=float(z.max())
+                    )
+                )
+            ]
+        )
+ 
+        fig.update_layout(
+            scene=dict(aspectmode="data"),
+            coloraxis_colorbar=dict(title="z")
+        )
+ 
+        if show:
+            fig.show()
+        return fig
+
 class Solenoid(Coil):
     def __init__(self, n_turns: int, z_initial_point: float, z_final_point: float, radius: float, max_seg_len: float,
                  *, crossSectionalArea: float = 1.0, resistivity: float = 1.7e-8,invertRAxis: bool = False):
