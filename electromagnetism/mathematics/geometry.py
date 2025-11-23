@@ -111,7 +111,6 @@ def line(Pa, Pb,*, max_seg_len:float = 1,n_points:int = None):
     assert max_seg_len > 0,'The maximun segment legth must be an positive number'
     #assert isinstance(n_points, ('None', 'int'))
     length = norm(Pa - Pb)
-    assert length >= max_seg_len,'The distance between the points must be equal or higher than the maximum segment length'
     if n_points is None:
         n_points = int(np.ceil(length / max_seg_len)) + 1
         path = np.moveaxis(np.linspace(Pa, Pb, n_points),0,1)

@@ -26,3 +26,7 @@ results/
 
 #TODO list
 todo.md
+
+# Sphinx documentation
+docs/_build/
+docs/build/

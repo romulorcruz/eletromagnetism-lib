@@ -14,7 +14,9 @@ from ..mathematics.constants import MU0_PRIME
 from electromagnetism.mathematics.geometry import helicoid
 from electromagnetism.mathematics.geometry import racetrack3d
 import plotly.express as px
+import plotly.graph_objects as go
 from scipy.integrate import simpson
+from plotly.io import show
 class Coil:
     def __init__(self, coilPath:ndarray, invertRAxis:bool=False,
                  *, crossSectionalArea:float = 1 , resistivity:float=1.7e-8):
@@ -207,23 +209,101 @@ class Coil:
         return dissipationPotency
 
 
-    def cloud(self, n):
-        x = np.linspace(self.coilPath[:,0].min()-n, self.coilPath[:,0].max()+n,15)
-        y = np.linspace(self.coilPath[:,1].min()-n, self.coilPath[:,1].max()+n,15)
-        z = np.linspace(self.coilPath[:,2].min()-n, self.coilPath[:,2].max()+n,15)
-
-        xx,yy, zz = np.meshgrid(x,y,z)
-        space = np.zeros((x.shape[0] * y.shape[0] * z.shape[0], 3))
-        space[:, 0] = xx.flatten()
-        space[:, 1] = yy.flatten()
-        space[:, 2] = zz.flatten()
-
-        b = self.biotSavart3d(space,10000)
-        b_t = np.linalg.norm((b[3],b[4],b[5]), axis=0)
-        b = np.concatenate((b,[b_t]))
-        px.scatter_3d(b, x = b[0], y = b[1], z = b[2], color=b[6], opacity=1).show()
-
-        return b, space
+    def cloud(self, padding: float = 0.0,n:int = 10,i = 1, integration_method:float='Simpson', plane_axis=None, plane_value='mid', plane_thickness=0.0, show=False):
+            '''
+                Generate a cloud of points by a mesh grid and calculates the magnetic field at each point.
+                :param padding float: space between the maximum and minimum point of the object and the start and end of meshgrid to every axis
+                :param n int: number of points in every axis before the generation of mesh grid
+                :param i float: the value of current in coil
+                :param integration_method str: integration method for Biot-Savart law
+                
+                :returns fig,b numpy.array: returns the figure if plot is true and the vector b with the coordinates of the points and the magnetic field
+                at x,y and z and the total field by the norm of x,y and z components.
+            '''
+            x = np.linspace(self.coilPath[:,0].min()-padding, self.coilPath[:,0].max()+padding,n)
+            y = np.linspace(self.coilPath[:,1].min()-padding, self.coilPath[:,1].max()+padding,n)
+            z = np.linspace(self.coilPath[:,2].min()-padding, self.coilPath[:,2].max()+padding,n)
+    
+            xx,yy, zz = np.meshgrid(x,y,z)
+            space = np.zeros((x.shape[0] * y.shape[0] * z.shape[0], 3))
+            space[:, 0] = xx.flatten()
+            space[:, 1] = yy.flatten()
+            space[:, 2] = zz.flatten()
+    
+            b = self.biotSavart3d(space,integration_method=integration_method, I= i)
+            b_t = np.linalg.norm((b[3],b[4],b[5]), axis=0)
+            b = np.concatenate((b,[b_t]))
+    
+            fig = go.Figure()
+            fig.add_trace(go.Scatter3d(
+            x=space[:, 0],
+            y=space[:, 1],
+            z=space[:, 2],
+            mode="markers",
+            marker=dict(
+                size=5,                    
+                color=b_t,
+                colorscale="Plasma",
+                opacity=0.5,
+                colorbar=dict(title="|B|"),
+            ),
+            name="Field"
+            ))
+    
+            if plane_axis is not None:
+                axis_map = {'x': 0, 'y': 1, 'z': 2}
+                ax = axis_map.get(plane_axis.lower())
+    
+                if ax is not None:
+                    coord = space[:, ax]
+    
+                    if plane_value == 'mid':
+                        val = 0.5 * (coord.min() + coord.max())
+                    else:
+                        val = float(plane_value)
+    
+                    if plane_thickness <= 0.0:
+                        if plane_axis.lower() == 'x':
+                            dz = x[1] - x[0]
+                        elif plane_axis.lower() == 'y':
+                            dz = y[1] - y[0]
+                        else:
+                            dz = z[1] - z[0]
+                        plane_thickness_eff = abs(dz)
+                    else:
+                        plane_thickness_eff = float(plane_thickness)
+    
+                    mask = np.abs(coord - val) <= plane_thickness_eff / 2.0
+    
+                    if mask.any():
+                        fig.add_trace(go.Scatter3d(
+                            x=space[mask, 0],
+                            y=space[mask, 1],
+                            z=space[mask, 2],
+                            mode="markers",
+                            marker=dict(
+                                size=4,              
+                                color=b_t[mask],
+                                colorscale="Plasma",
+                                opacity=0.9
+                            ),
+                            name=f"Field on {plane_axis} = {val:.3g}"
+                        ))
+            fig.update_layout(
+                scene=dict(
+                    xaxis_title="x",
+                    yaxis_title="y",
+                    zaxis_title="z",
+                    aspectmode="data",
+                ),
+                margin=dict(l=0, r=0, b=0, t=30),
+                title="Magnetic field cloud"
+            )
+    
+            if show:
+                fig.show()
+        
+            return fig, b
     
     def plot(self):
         pts = self.coilPath  # (N, 3)
