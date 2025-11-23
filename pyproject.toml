@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "electromagnetism"
+name = "SciMagnet"
 version = "0.0.1"
 requires-python = ">= 3.8"
 authors = [
   {name = "Ivan Prearo"},
   {name = "João Ramos"},
-  {name = "Marco Rodrigues"},
-  {name = "Romulo Cruz"},
+  {name = "Marco Rodrigues", email="marcotlr2312@gmail.com"},
+  {name = "Romulo Cruz", email="romulorabelocruz@gmail.com"},
 ]
 description = "Package for Calculation of Coil Properties"
 readme = "README.md"
